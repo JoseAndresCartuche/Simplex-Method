@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Método Simplex</title>
+	<link href="css/material-components-web.min.css" rel="stylesheet">
+	<!-- <link href="css/mdc-data-table.css" rel="stylesheet"> -->
+	<link rel="stylesheet" href="css/icon.css?family=Material+Icons">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
+	<link rel="stylesheet" href="css/style.css">
+	<script src="js/material-components-web.min.js"></script>
+	<!-- <script src="js/mdc-data-table.js"></script> -->
+	<script src="js/jquery-3.4.1.min.js" type="text/javascript"></script>
+	<script src="js/mindmup-editabletable.js"></script>
+	<script src="js/numeric-input-example.js"></script>
+	<script src="js/d3.min.js" type="text/javascript"></script>
+	<script src="js/math.js" type="text/javascript"></script>
+	<script type="text/x-mathjax-config">
+		MathJax.Hub.Config({
+			showProcessingMessages: false,
+			showMathMenu: false
+		});
+	</script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script>
+    <!-- <script src="js/function-plot.js" type="text/javascript"></script> -->
+    <!-- <script src="js/expression-eval.js" type="text/javascript"></script> -->
+    <script src="js/script.js" type="text/javascript"></script>
+</head>
+<body class="mdc-typography">
+	<aside class="mdc-drawer mdc-drawer--modal"> <!-- data-mdc-auto-init="MDCDrawer" -->
+		<div class="mdc-drawer__header">
+			<h3 class="mdc-drawer__title">Métodos Numéricos de P.L.</h3>
+			<h6 class="mdc-drawer__subtitle">Investigación de Operaciones</h6>
+		</div>
+		<div class="mdc-drawer__content">
+			<nav class="mdc-list">
+				<a class="mdc-list-item mdc-list-item--activated" href="#" aria-current="page">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">bookmark</i>
+					<span class="mdc-list-item__text">Método Simplex</span>
+				</a>
+				<a class="mdc-list-item" href="#" aria-current="page">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">inbox</i>
+					<span class="mdc-list-item__text">Inbox</span>
+				</a>
+				<a class="mdc-list-item" href="#">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">send</i>
+					<span class="mdc-list-item__text">Outgoing</span>
+				</a>
+					<a class="mdc-list-item" href="#">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">drafts</i>
+					<span class="mdc-list-item__text">Drafts</span>
+				</a>
+				<hr class="mdc-list-divider">
+				<h6 class="mdc-list-group__subheader">Labels</h6>
+				<a class="mdc-list-item" href="#">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">bookmark</i>
+					<span class="mdc-list-item__text">Family</span>
+				</a>
+				<a class="mdc-list-item" href="#">
+					<i class="material-icons mdc-list-item__graphic" aria-hidden="true">brightness_4</i>
+					<span class="mdc-list-item__text">Modo Oscuro</span>
+					<div class="switch-list-item">
+						<div class="mdc-switch" data-mdc-auto-init="MDCSwitch">
+							<div class="mdc-switch__track"></div>
+							<div class="mdc-switch__thumb-underlay">
+								<div class="mdc-switch__thumb">
+									<input type="checkbox" id="dark-mode-switch" class="mdc-switch__native-control" role="switch">
+								</div>
+							</div>
+						</div>
+						<!-- <label for="basic-switch">off/on</label> -->
+					</div>
+				</a>
+			</nav>
+		</div>
+	</aside>
+	<div class="mdc-drawer-scrim"></div>
+	<div class="drawer-frame-app-content">
+		<header class="mdc-top-app-bar drawer-top-app-bar" id="app-bar" data-mdc-auto-init="MDCTopAppBar">
+			<div class="mdc-top-app-bar__row">
+				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+					<button class="material-icons mdc-icon-button mdc-top-app-bar__navigation-icon" data-mdc-auto-init="MDCRipple">menu</button>
+					<span class="mdc-top-app-bar__title">Método Simplex</span>
+				</section>
+			</div>
+		</header>
+		<main class="main-content" id="main-content">
+			<div class="mdc-top-app-bar--fixed-adjust container-cards">
+				<div id="box-data-sqrt" class="mdc-card my-card">
+					<div class="my-card-header">
+						<h5 class="my-card__title mdc-typography--headline5">Datos para la solución</h5>
+					</div>
+					<div class="my-card-content mdc-typography--body1">
+						<div class="my-card-content__secondary mdc-layout-grid">
+							<form id="form-data-solution">
+								<div class="mdc-layout-grid__inner">
+									<div class="mdc-layout-grid__cell--span-12">
+										<div class="my-card__caption">
+											<h6 class="my-card__subtitle mdc-typography--subtitle2">Tabla de restricciones</h6>
+										</div>
+									</div>
+								</div>
+								<div class="mdc-layout-grid__inner">
+									<div class="mdc-layout-grid__cell--span-12">
+										<div class="data-table-row-fullwidth">
+											<div class="mdc-data-table">
+												<table class="mdc-data-table__table editable" id="table-rest" aria-label="Tabla de restricciones">
+													<thead>
+														<tr class="mdc-data-table__header-row">
+															<th class="mdc-data-table__header-cell" role="columnheader" scope="col">Restricciones</th>
+														</tr>
+													</thead>
+													<tbody class="mdc-data-table__content">
+														<tr class="mdc-data-table__row">
+															<td class="mdc-data-table__cell"></td>
+														</tr>
+														<tr class="mdc-data-table__row">
+															<td class="mdc-data-table__cell"></td>
+														</tr>
+														<tr class="mdc-data-table__row">
+															<td class="mdc-data-table__cell"></td>
+														</tr>
+													</tbody>
+												</table>
+											</div>
+										</div>
+										<div class="button-container">
+											<button type="button" id="add-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
+												add
+											</button>
+											<button type="button" id="rm-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
+												remove
+											</button>
+										</div>
+									</div>
+								</div>
+								<div class="mdc-layout-grid__inner">
+									<div class="mdc-layout-grid__cell--span-6-desktop">
+										<div class="mdc-form-field" data-mdc-auto-init="MDCFormField">
+											<div class="mdc-radio" data-mdc-auto-init="MDCRadio">
+												<input class="mdc-radio__native-control" type="radio" id="radio-1" name="radios" checked>
+												<div class="mdc-radio__background">
+													<div class="mdc-radio__outer-circle"></div>
+													<div class="mdc-radio__inner-circle"></div>
+												</div>
+												<div class="mdc-radio__ripple"></div>
+											</div>
+											<label for="radio-1">Minimizar</label>
+										</div>
+									</div>
+									<div class="mdc-layout-grid__cell--span-6-desktop">
+										<div class="mdc-form-field" data-mdc-auto-init="MDCFormField">
+											<div class="mdc-radio" data-mdc-auto-init="MDCRadio">
+												<input class="mdc-radio__native-control" type="radio" id="radio-2" name="radios">
+												<div class="mdc-radio__background">
+													<div class="mdc-radio__outer-circle"></div>
+													<div class="mdc-radio__inner-circle"></div>
+												</div>
+												<div class="mdc-radio__ripple"></div>
+											</div>
+											<label for="radio-2">Maximizar</label>
+										</div>
+									</div>
+								</div>
+								<div class="mdc-layout-grid__inner">
+									<div class="mdc-layout-grid__cell--span-12">
+										<div class="my-card__caption">
+											<h6 class="my-card__subtitle mdc-typography--subtitle2">Función Objetivo</h6>
+										</div>
+									</div>
+								</div>
+								<div class="mdc-layout-grid__inner">
+									<div class="mdc-layout-grid__cell--span-12">
+										<div class="text-field-row-fullwidth">
+											<div class="mdc-text-field" data-mdc-auto-init="MDCTextField">
+												<input type="text" class="mdc-text-field__input" id="funcion_z" name="f_z" required>
+												<label class="mdc-floating-label" for="funcion_z">\(z =\)</label>
+												<div class="mdc-line-ripple"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+					<div class="my-card-footer mdc-card__actions">
+						<div class="button-container">
+							<button type="button" id="calculate" class="mdc-button mdc-button--raised mdc-card__action mdc-card__action--button" data-mdc-auto-init="MDCRipple">
+								<span class="mdc-button__label">Calcular Solución</span>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div id="box-solution" class="mdc-card my-card my-card-shaped">
+					<div class="my-card-header">
+						<h5 class="my-card__title mdc-typography--headline5">Resultado</h5>
+					</div>
+					<div class="my-card-content mdc-typography--body1">
+						<div class="my-card-content__primary">
+							<div class="text-field-row-fullwidth">
+								<div class="mdc-text-field mdc-text-field--outlined mdc-text-field--disabled" data-mdc-auto-init="MDCTextField">
+									<input type="text" id="z_result" class="mdc-text-field__input" name="sqrt_result" disabled>
+									<div class="mdc-notched-outline">
+										<div class="mdc-notched-outline__leading"></div>
+										<div class="mdc-notched-outline__notch">
+											<label class="mdc-floating-label mdc-floating-label--float-above" for="sqrt_result">El valor de \(z\) es:</label>
+										</div>
+										<div class="mdc-notched-outline__trailing"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="my-card-footer mdc-card__actions">
+						<div class="button-container mdc-card__action-buttons">
+							<button type="button" id="clear-data" class="mdc-button" data-mdc-auto-init="MDCRipple">
+								<span class="mdc-button__label">Limpiar Datos</span>
+							</button>
+							<button type="button" id="show-table" class="mdc-button mdc-button--raised show" data-mdc-auto-init="MDCRipple">
+								<span class="mdc-button__label">Mostrar Tabla</span>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div id="box-data-table" class="mdc-card my-card my-card-hidden">
+					<div class="my-card-header">
+						<h6 class="my-card__title mdc-typography--headline6">Tabla de Iteraciones</h6>
+					</div>
+					<div class="my-card-content mdc-typography--body1">
+						<div class="my-card-content__primary">
+							<div class="mdc-data-table mdc-table-overflow">
+								<table id="table-solution" class="mdc-data-table__table">
+									<thead>
+										<tr class="mdc-data-table__header-row">
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">N°</th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">X<sub>i</sub></th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">X<sub>s</sub></th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">X<sub>m</sub></th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">f(X<sub>i</sub>)</th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">f(X<sub>m</sub>)</th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">f(X<sub>i</sub>).f(X<sub>m</sub>)</th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">E<sub>a</sub></th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">E<sub>r</sub></th>
+											<th class="mdc-data-table__header-cell mdc-data-table__header-cell--numeric" role="columnheader" scope="col" aria-label="Test ARIA label">E<sub>p</sub></th>
+						                </tr>
+									</thead>
+									<tbody class="mdc-data-table__content"></tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+	
+	<!-- <div class="principal-header">
+		<h2 class="mdc-typography--headline2">Método de Bisección</h2>
+	</div> -->
+	<!-- <div class="mdc-layout-grid">
+		<div class="mdc-layout-grid__inner">
+			<div class="mdc-layout-grid__cell"></div>
+			<div class="mdc-layout-grid__cell"></div>
+			<div class="mdc-layout-grid__cell"></div>
+		</div>
+	</div> -->
+	<!-- <div class="mdc-dialog"
+	     role="alertdialog"
+	     aria-modal="true"
+	     aria-labelledby="my-dialog-title"
+	     aria-describedby="my-dialog-content">
+	  <div class="mdc-dialog__container">
+	    <div class="mdc-dialog__surface">
+	      <! Title cannot contain leading whitespace due to mdc-typography-baseline-top() -->
+	      <!-- <h2 class="mdc-dialog__title" id="my-dialog-title">
+	      	Dialog Title
+	   	</h2>
+	      <div class="mdc-dialog__content" id="my-dialog-content">
+	        Dialog body text goes here.
+	      </div>
+	      <footer class="mdc-dialog__actions">
+	        <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="no">
+	          <span class="mdc-button__label">No</span>
+	        </button>
+	        <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="yes">
+	          <span class="mdc-button__label">Yes</span>
+	        </button>
+	      </footer>
+	    </div>
+	  </div>
+	  <div class="mdc-dialog__scrim"></div>
+	</div> -->
+</body>
+</html>
