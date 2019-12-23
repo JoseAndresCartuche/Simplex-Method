@@ -103,35 +103,57 @@
 								</div>
 								<div class="mdc-layout-grid__inner">
 									<div class="mdc-layout-grid__cell--span-12">
-										<div class="data-table-row-fullwidth">
-											<div class="mdc-data-table">
-												<table class="mdc-data-table__table editable" id="table-rest" aria-label="Tabla de restricciones">
-													<thead>
-														<tr class="mdc-data-table__header-row">
-															<th class="mdc-data-table__header-cell" role="columnheader" scope="col">Restricciones</th>
-														</tr>
-													</thead>
-													<tbody class="mdc-data-table__content">
-														<tr class="mdc-data-table__row">
-															<td class="mdc-data-table__cell"></td>
-														</tr>
-														<tr class="mdc-data-table__row">
-															<td class="mdc-data-table__cell"></td>
-														</tr>
-														<tr class="mdc-data-table__row">
-															<td class="mdc-data-table__cell"></td>
-														</tr>
-													</tbody>
-												</table>
+										<div class="mdc-layout-grid__inner">
+											<div class="mdc-layout-grid__cell--span-11-desktop">
+												<div class="data-table-row-fullwidth">
+													<div class="mdc-data-table">
+														<table class="mdc-data-table__table editable" id="table-rest" aria-label="Tabla de restricciones">
+															<thead>
+																<tr class="mdc-data-table__header-row">
+																	<th class="mdc-data-table__header-cell" role="columnheader" scope="col">\(X_1\)</th>
+																	<th class="mdc-data-table__header-cell" role="columnheader" scope="col">\(X_2\)</th>
+																	<th class="mdc-data-table__header-cell" role="columnheader" scope="col">\(X_3\)</th>
+																</tr>
+															</thead>
+															<tbody class="mdc-data-table__content">
+																<tr class="mdc-data-table__row">
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																</tr>
+																<tr class="mdc-data-table__row">
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																</tr>
+																<tr class="mdc-data-table__row">
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																	<td class="mdc-data-table__cell"></td>
+																</tr>
+															</tbody>
+														</table>
+													</div>
+												</div>
+												<div class="button-container_flex">
+													<button type="button" id="add-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
+														add
+													</button>
+													<button type="button" id="rm-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
+														remove
+													</button>
+												</div>
 											</div>
-										</div>
-										<div class="button-container">
-											<button type="button" id="add-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
-												add
-											</button>
-											<button type="button" id="rm-row-table" class="mdc-icon-button material-icons" aria-hidden="true">
-												remove
-											</button>
+											<div class="mdc-layout-grid__cell--span-1-desktop">
+												<div class="button-container_vertical">
+													<button type="button" id="add-column-table" class="mdc-icon-button material-icons" aria-hidden="true">
+														add
+													</button>
+													<button type="button" id="rm-column-table" class="mdc-icon-button material-icons" aria-hidden="true">
+														remove
+													</button>
+												</div>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -185,7 +207,7 @@
 						</div>
 					</div>
 					<div class="my-card-footer mdc-card__actions">
-						<div class="button-container">
+						<div class="button-container_flex mdc-card__action-buttons">
 							<button type="button" id="calculate" class="mdc-button mdc-button--raised mdc-card__action mdc-card__action--button" data-mdc-auto-init="MDCRipple">
 								<span class="mdc-button__label">Calcular Solución</span>
 							</button>
@@ -204,7 +226,7 @@
 									<div class="mdc-notched-outline">
 										<div class="mdc-notched-outline__leading"></div>
 										<div class="mdc-notched-outline__notch">
-											<label class="mdc-floating-label mdc-floating-label--float-above" for="sqrt_result">El valor de \(z\) es:</label>
+											<label class="mdc-floating-label mdc-floating-label--float-above" for="sqrt_result">La solución básica factible óptima es:</label>
 										</div>
 										<div class="mdc-notched-outline__trailing"></div>
 									</div>
@@ -213,7 +235,7 @@
 						</div>
 					</div>
 					<div class="my-card-footer mdc-card__actions">
-						<div class="button-container mdc-card__action-buttons">
+						<div class="button-container_flex mdc-card__action-buttons">
 							<button type="button" id="clear-data" class="mdc-button" data-mdc-auto-init="MDCRipple">
 								<span class="mdc-button__label">Limpiar Datos</span>
 							</button>

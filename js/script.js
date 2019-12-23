@@ -505,26 +505,23 @@ $(document).ready(function() {
 	});
 
 	$("button#add-row-table").click(function(event) {
-		var tr = $('<tr>', {
-			'class' : 'mdc-data-table__row'
-		});
-		var td = $('<td>', {
-			'class' : 'mdc-data-table__cell',
-			'tabindex': '1'
-		});
-		tr.append(td);
-		$("#table-rest tbody").append(tr);
-		// refreshEditableTable("#table-rest");
+		var last_row = $("#table-rest tbody tr").length - 1;
+		addRow("#table-rest", last_row, 1);
 	});
 
 	$("button#rm-row-table").click(function(event) {
-		// Obtenemos el total de columnas (tr) del id "tabla"
-		var num_row = $("#table-rest tbody tr").length;
-		if(num_row > 1)
-		{
-			// Eliminamos la ultima columna
-			$("#table-rest tbody tr:last").remove();
-		}
+		var last_row = $("#table-rest tbody tr").length - 1;
+		rmRow("#table-rest", last_row);
+	});
+
+	$("button#add-column-table").click(function(event) {
+		var last_col = $("#table-rest tr:last td").length - 1;
+		addColumn("#table-rest", last_col, 1);
+	});
+
+	$("button#rm-column-table").click(function(event) {
+		var last_col = $("#table-rest tr:last td").length - 1;
+		rmColumn("#table-rest", last_col);
 	});
 
 	$("button#clear-data").click(function(event) {
@@ -805,6 +802,73 @@ function refreshEditableTable(table) {
 	$(table).editableTableWidget();
 }
 
+function addRow(table, row, n_row_insert) {
+	var nColumn = $(table + " tr:last td").length;
+	var fst_tr = $(table + " tbody").find('tr')[row];
+	for (var i = 0; i < n_row_insert; i++) {
+		var tr = $('<tr>', {
+			'class' : 'mdc-data-table__row'
+		});
+		for (var i = 0; i < nColumn; i++) {
+			var td = $('<td>', {
+				'class' : 'mdc-data-table__cell',
+				'tabindex': '1'
+			});
+			tr.append(td);
+		}
+		$(fst_tr).after(tr);
+	}
+}
+
+function rmRow(table, row) {
+	var num_row = $("#table-rest tbody tr").length;
+	if(num_row > 1 && row < num_row)
+	{
+		var fst_tr = $(table + " tbody").find('tr')[row];
+		// Eliminamos la fila requerida
+		// $("#table-rest tbody tr:last").remove();
+		$(fst_tr).remove();
+	}
+}
+
+function addColumn(table, column, n_col_insert) {
+	$(table).find('tr').each(function(index, row) {
+		var fst_td = $(row).find('td, th')[column];
+		if (fst_td.tagName == 'TH') {
+			var nColumn = $(table + " tr:last td").length;
+			for (var i = 0; i < n_col_insert; i++) {
+				var text = '\\(X_' + (nColumn + i + 1) + '\\)';
+				var th = $('<th>', {
+					'class' : 'mdc-data-table__header-cell',
+					'role': 'columnheader',
+					'scope': 'col',
+					'text': text
+				});
+				$(fst_td).after(th);
+			}
+		} 
+		else {
+			for (var i = 0; i < n_col_insert; i++) {
+				var td = $('<td>', {
+					'class' : 'mdc-data-table__cell',
+					'tabindex': '1'
+				});
+				$(fst_td).after(td);
+			}
+		}
+	});
+	MathJax.Hub.Queue(["Typeset", MathJax.Hub, table]);
+}
+
+function rmColumn(table, column) {
+	$(table).find('tr').each(function(index, row) {
+		var nColumn = $(table + " tr:last td").length;
+		if (nColumn > 1) {
+			var fst_td = $(row).find('td, th')[column];
+			$(fst_td).remove();
+		}
+	});
+}
 
 function resize_grid_inputs() {
 	var win_width = $(window).width();

@@ -104,11 +104,15 @@ body {
 	margin: 5px 0;
 }
 
-.button-container {
+.button-container_flex {
 	display: flex;
 	flex-grow: 1;
 	justify-content: flex-end;
 	/*margin: auto;*/
+}
+
+.button-container_vertical {
+	display: block;
 }
 
 .button-container button {
