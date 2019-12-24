@@ -517,11 +517,19 @@ $(document).ready(function() {
 	$("button#add-column-table").click(function(event) {
 		var last_col = $("#table-rest tr:last td").length - 1;
 		addColumn("#table-rest", last_col, 1);
+
+		// Agrega columna a la función objetivo
+		var last_col_z = $("#table-funcion_z tr:last td").length - 1;
+		addColumn("#table-funcion_z", last_col_z, 1);
 	});
 
 	$("button#rm-column-table").click(function(event) {
 		var last_col = $("#table-rest tr:last td").length - 1;
 		rmColumn("#table-rest", last_col);
+
+		// Elimina columna de la función objetivo
+		var last_col_z = $("#table-funcion_z tr:last td").length - 1;
+		rmColumn("#table-funcion_z", last_col_z, 1);
 	});
 
 	$("button#clear-data").click(function(event) {
@@ -837,7 +845,7 @@ function addColumn(table, column, n_col_insert) {
 		if (fst_td.tagName == 'TH') {
 			var nColumn = $(table + " tr:last td").length;
 			for (var i = 0; i < n_col_insert; i++) {
-				var text = '\\(X_' + (nColumn + i + 1) + '\\)';
+				var text = '\\(X_{' + (nColumn + i + 1) + '}\\)';
 				var th = $('<th>', {
 					'class' : 'mdc-data-table__header-cell',
 					'role': 'columnheader',
