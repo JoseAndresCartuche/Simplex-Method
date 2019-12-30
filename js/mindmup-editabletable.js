@@ -1,4 +1,7 @@
 /*global $, window*/
+/*
+	Modified by Jose Andres Cartuche (Aceleración)
+ */
 $.fn.editableTableWidget = function (options) {
 	'use strict';
 	return $(this).each(function () {
@@ -14,6 +17,24 @@ $.fn.editableTableWidget = function (options) {
 			active,
 			showEditor = function (select) {
 				active = element.find('td:focus');
+				if (!active.prop('editable')) {
+					return;
+				}
+				// if (activeOptions.needEdits.length > 0){
+				// 	if ($.inArray($(active).index(),activeOptions.needEdits) === -1){
+				// 		return;
+				// 	}
+				// }
+				// if (activeOptions.dontEdits.length > 0) {
+				// 	if (activeOptions.dynamic) {
+				// 		if(active.prop(''))
+				// 	}
+				// 	else {
+				// 		if ($.inArray($(active).index(),activeOptions.dontEdits) !== -1){
+				// 			return;
+				// 		}
+				// 	}
+				// }
 				if (active.length) {
 					editor.val(active.text())
 						.removeClass('error')
@@ -110,7 +131,60 @@ $.fn.editableTableWidget = function (options) {
 			}
 		});
 
-		element.find('td').prop('tabindex', 1);
+		// DOMNodeInserted DOMNodeRemoved - Eventos que funcionan tambien
+		element.on('DOMSubtreeModified', function() {
+
+			var act_NoEdits = [];
+
+			if (activeOptions.dynamic) {
+				element.find('th').each(function(index, el) {
+					if ($(el).hasClass('col_no_edit')) {
+						act_NoEdits.push($(el).index());
+					}
+				});
+			}
+			else {
+				act_NoEdits = activeOptions.dontEdits;
+			}
+
+			if (act_NoEdits.length > 0){
+				element.find('td').each(function(index, el) {
+					if ($.inArray($(el).index(),act_NoEdits) === -1){
+						$(el).prop('tabindex', 1);
+						$(el).prop('editable', true);
+					}
+					else {
+						$(el).removeAttr('tabindex');
+						$(el).removeAttr('editable');
+					}
+				});
+			}
+			else {
+				element.find('td').prop('tabindex', 1);
+				element.find('td').prop('editable', 1);
+			}
+		});
+
+		element.find('th').each(function(index, el) {
+			if (activeOptions.dynamic && activeOptions.dontEdits.length > 0){
+				if ($.inArray($(el).index(),activeOptions.dontEdits) !== -1){
+					$(el).addClass('col_no_edit');
+				}
+			}
+		});
+
+		if (activeOptions.dontEdits.length > 0){
+			element.find('td').each(function(index, el) {
+				if ($.inArray($(el).index(),activeOptions.dontEdits) === -1){
+					$(el).prop('tabindex', 1);
+					$(el).prop('editable', true);
+				}
+			});
+		}
+		else {
+			element.find('td').prop('tabindex', 1);
+			element.find('td').prop('editable', 1);
+		}
 
 		$(window).on('resize', function () {
 			if (editor.is(':visible')) {
@@ -126,6 +200,8 @@ $.fn.editableTableWidget.defaultOptions = {
 	cloneProperties: ['padding', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
 					  'text-align', 'font', 'font-size', 'font-family', 'font-weight',
 					  'border', 'border-top', 'border-bottom', 'border-left', 'border-right'],
-	editor: $('<input>')
+	editor: $('<input>'),
+	needEdits: [],
+	dontEdits: [],
+	dynamic: false
 };
-

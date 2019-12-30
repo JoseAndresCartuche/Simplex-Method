@@ -46,6 +46,12 @@ var options = {
 	grid: true
 };
 
+var conditionals = [
+	{ value: 'leq', text: '&le;'},
+	{ value: 'geq', text: '&ge;'},
+	{ value: 'eq', text: '&#61;'},
+];
+
 // Matriz N x M donde estan los valores de las ecuaciones lineales
 class MatrizEq {
 	constructor(array) {
@@ -497,7 +503,8 @@ $(document).ready(function() {
 
 	$("#form-data-solution").submit(function(event) {
 		event.preventDefault();
-		calculate_solution();
+		//console.log($(this).serialize());
+		//calculate_solution();
 	});
 
 	$("button#calculate").click(function(event) {
@@ -515,17 +522,17 @@ $(document).ready(function() {
 	});
 
 	$("button#add-column-table").click(function(event) {
-		var last_col = $("#table-rest tr:last td").length - 1;
-		addColumn("#table-rest", last_col, 1);
+		var last_col_var = $("#table-rest tr:last td").length - 3;
+		addColumn("#table-rest", last_col_var, 1, last_col_var + 1);
 
 		// Agrega columna a la función objetivo
 		var last_col_z = $("#table-funcion_z tr:last td").length - 1;
-		addColumn("#table-funcion_z", last_col_z, 1);
+		addColumn("#table-funcion_z", last_col_z, 1, last_col_z + 1);
 	});
 
 	$("button#rm-column-table").click(function(event) {
-		var last_col = $("#table-rest tr:last td").length - 1;
-		rmColumn("#table-rest", last_col);
+		var last_col_var = $("#table-rest tr:last td").length - 3;
+		rmColumn("#table-rest", last_col_var);
 
 		// Elimina columna de la función objetivo
 		var last_col_z = $("#table-funcion_z tr:last td").length - 1;
@@ -783,11 +790,12 @@ function efectsMDC() {
 	// var dialog = new mdc.dialog.MDCDialog(document.querySelector('.mdc-dialog'));
 	// dialog.open();
 	const MDCRipple = mdc.ripple.MDCRipple;
+	// const MDCSelect = mdc.select.MDCSelect;
 	// const iconButtonRipple = new MDCRipple(document.querySelector('.mdc-icon-button'));
 	// iconButtonRipple.unbounded = true;
 	var iconButtons = document.querySelectorAll('.mdc-icon-button');
 	Array.prototype.forEach.call(iconButtons, function(item) {
-		iconButton = new MDCRipple(item);
+		const iconButton = new MDCRipple(item);
 		iconButton.unbounded = true;
 	});
 
@@ -803,12 +811,31 @@ function efectsMDC() {
 
 	var tables = document.querySelectorAll('.mdc-data-table');
 	Array.prototype.forEach.call(tables, (table) => mdc.dataTable.MDCDataTable.attachTo(table));
-	$('.editable').editableTableWidget();
+
+	// Para las tablas editables
+	$('#table-rest.editable').editableTableWidget({
+		dontEdits: [3],
+		dynamic: true
+	});
+	$('#table-funcion_z.editable').editableTableWidget();
+
+
+	// const menu = mdc.menu.MDCMenu.attachTo(document.querySelector('.mdc-menu'));
+	// menu.open = false;
+
+	// Selectores
+	// var selectors = document.querySelectorAll('.mdc-select');
+	// Array.prototype.forEach.call(selectors, function(item) {
+	// 	const select = new MDCSelect(item);
+	// 	select.listen('MDCSelect:change', () => {
+	// 		//alert(`Selected option at index ${select.selectedIndex} with value "${select.value}"`);
+	// 	});
+	// });
 }
 
-function refreshEditableTable(table) {
-	$(table).editableTableWidget();
-}
+// function refreshEditableTable(table) {
+// 	$(table).editableTableWidget();
+// }
 
 function addRow(table, row, n_row_insert) {
 	var nColumn = $(table + " tr:last td").length;
@@ -819,9 +846,21 @@ function addRow(table, row, n_row_insert) {
 		});
 		for (var i = 0; i < nColumn; i++) {
 			var td = $('<td>', {
-				'class' : 'mdc-data-table__cell',
-				'tabindex': '1'
+				'class' : 'mdc-data-table__cell'
 			});
+			if (i == nColumn-2) {
+				var select = $('<select>', {
+					'name': 'condition'
+				});
+				conditionals.forEach( function(item, index) {
+					var option = $('<option>', {
+						'value': item.value,
+						'text': Encoder.htmlDecode(item.text)
+					});
+					select.append(option);
+				});
+				td.append(select);
+			}
 			tr.append(td);
 		}
 		$(fst_tr).after(tr);
@@ -834,18 +873,17 @@ function rmRow(table, row) {
 	{
 		var fst_tr = $(table + " tbody").find('tr')[row];
 		// Eliminamos la fila requerida
-		// $("#table-rest tbody tr:last").remove();
 		$(fst_tr).remove();
 	}
 }
 
-function addColumn(table, column, n_col_insert) {
+function addColumn(table, column, n_col_insert, last_rest_int) {
 	$(table).find('tr').each(function(index, row) {
 		var fst_td = $(row).find('td, th')[column];
 		if (fst_td.tagName == 'TH') {
-			var nColumn = $(table + " tr:last td").length;
+			//var nColumn = $(table + " tr:last td").length;
 			for (var i = 0; i < n_col_insert; i++) {
-				var text = '\\(X_{' + (nColumn + i + 1) + '}\\)';
+				var text = '\\(X_{' + (last_rest_int + i + 1) + '}\\)';
 				var th = $('<th>', {
 					'class' : 'mdc-data-table__header-cell',
 					'role': 'columnheader',
@@ -858,8 +896,7 @@ function addColumn(table, column, n_col_insert) {
 		else {
 			for (var i = 0; i < n_col_insert; i++) {
 				var td = $('<td>', {
-					'class' : 'mdc-data-table__cell',
-					'tabindex': '1'
+					'class' : 'mdc-data-table__cell'
 				});
 				$(fst_td).after(td);
 			}
