@@ -503,8 +503,21 @@ $(document).ready(function() {
 
 	$("#form-data-solution").submit(function(event) {
 		event.preventDefault();
-		//console.log($(this).serialize());
-		//calculate_solution();
+		var list = $("#table-rest").find('tbody').children();
+		var list_values_rt = [].map.call(list, (node) => [].map.call(node.children, function(td) {
+                if ($(td).find('select').length > 0) {
+                    return $(td).children('select').val();
+                } else {
+                    return evaluate($(td).text());
+                }
+            }));
+		//console.log(list_values_rt);
+
+		list = $("#table-funcion_z").find('tbody').find('td');
+		var list_values_fo = [].map.call(list, (node) => evaluate($(node).text()));
+		//console.log(list_values_fo);
+		
+		calculate_solution(list_values_rt, list_values_fo);
 	});
 
 	$("button#calculate").click(function(event) {
@@ -596,7 +609,7 @@ $(window).resize(function(){
 	$("#function").show();
 
 	// cambiar la grilla de los inputs, cambiando sus clases
-	resize_grid_inputs();
+	//resize_grid_inputs();
 });
 
 // function graphic_fx(){
@@ -660,9 +673,11 @@ $(window).resize(function(){
 // }
 
 // Calculate solution for the simplex methodo (vbeta)
-function calculate_solution() {
-	var fz = $("input#funcion_z").val();
+function calculate_solution(ar_rest, ar_fobj) {
+	console.log(ar_rest);
+	console.log(ar_fobj);
 
+	var fz = "";
 	if (fz !== "") {
 		var array2D = [];
 		$("#table-rest tbody tr").find("td").each(function() {
@@ -779,6 +794,26 @@ function isComplex(number) {
 	}
 	else {
 		return false;
+	}
+}
+
+function evaluate(text) {
+	var number = NaN;
+	try {
+		number = math.evaluate(text);
+	} catch(e) {
+		console.error(e);
+	}
+	return number;
+}
+
+function isNumber(text) {
+	if (typeof text === "number") {
+		return (!isNaN(text));
+	}
+	else {
+		var n = parseInt(text);
+		return (!isNaN(text));
 	}
 }
 
