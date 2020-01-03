@@ -10,6 +10,17 @@ if (!String.prototype.delSpaces) {
 	})();
 }
 
+if (!String.prototype.format) {
+	String.prototype.format = function () {
+		var a = this;
+		for (var k in arguments) {
+			a = a.replace(new RegExp("\\{" + k + "\\}", 'g'), arguments[k]);
+		}
+		return a;
+	}
+}
+
+
 function computeYScale(width, height, xScale) {
 	var xDiff = xScale[1] - xScale[0];
 	var yDiff = height * xDiff / width;
@@ -52,133 +63,262 @@ var conditionals = [
 	{ value: 'eq', text: '&#61;'},
 ];
 
-// Matriz N x M donde estan los valores de las ecuaciones lineales
-class MatrizEq {
+var TEX_REST = "\\(X_{{0}}\\)";
+var TEX_SLACK = "\\(S_{{0}}\\)";
+var TEX_Z = "\\(Z\\)";
+
+// Matriz donde estan las restricciones
+// Las convierte en la forma estándar
+// Usa funciones de math.js
+class MatrizRest {
 	constructor(array) {
-		if (typeof array === "object" && array.length) {
+		if (typeof array === "object" && array.length > 0) {
 			this.matriz = array;
 		}
 		else {
-			throw new TypeError("El parametro array_A no es un array");
+			throw new TypeError("The argument is not an array");
 		}
 	}
 
-	calculateMaxs() {
-		var matrizA = [];
-		var arrayMaxs = [];
-		this.matriz.forEach(function(element) {
-			var arr = [];
-			element.forEach(function(item, index) {
-				if (index < element.length - 1) {
-					arr.push(item);
-				}
-			});
-			matrizA.push(arr);
-		});
-		matrizA = math.max(math.abs(matrizA), 1);
-		this.matriz.forEach(function(element, i) {
-			var arr = [];
-			element.forEach(function(item, j) {
-				if (j < element.length - 1) {
-					if (item == matrizA[i]) {
-						arr.push(item);
-						arr.push(j);
-					}
-				}
-			});
-			arrayMaxs.push(arr);
-		});
-		this.maxsA = arrayMaxs;
-		return this.maxsA;
-	}
+	toStandardForm() {
+		var standard;
+		var conditions = math.transpose(math.column(this.matriz, this.matriz[0].length - 2))[0];
+		var i_eq = 0;
 
-	sort(compareFunction) {
-		if (arguments.length === 0) {
-			this.calculateMaxs();
-			this.matriz.sort((rowi, rowj) => {
-				return this.compareDiagNum(rowi, rowj);
-			});
+		conditions.forEach((element) => {
+			if (element === "eq") {
+				i_eq++;
+			}
+		});
+
+		if (i_eq == conditions.length) {
+			// No hay que estandarizar
+			// Solo hay que devolver el array sin los condicionales;
+			standard = new Array();
+			this.matriz.forEach((array) => standard.push(array.filter((item) => typeof item === 'number')));
 		}
 		else {
-			if (typeof compareFunction === "function") {
-				this.matriz.sort(compareFunction);
-			}
-			else {
-				throw new TypeError("El parametro compareFunction no es una función");
-			}
+			// Si hay que estandarizar
+			// Se crea la matriz identidad con las variables slack
+			var slacks = conditions.map((item) => (item === "geq") ? -1 : 1);
+			var identity = math.diag(slacks);
+			// Se extrae las bi de las restricciones
+			var bi = math.column(this.matriz, this.matriz[0].length - 1);
+
+			// Se extrae los valores de las variables de decisión
+			var values = new Array();
+			this.matriz.forEach((array) => values.push(array.filter((item, index) => index < array.length - 2)));
+
+			// Se concatena la matriz de las variables, la matriz identidad y 
+			// las bi de las restricciones
+			standard = math.concat(math.concat(values, identity), bi);
 		}
+		return standard;
 	}
 
-	compareDiagNum(rowi, rowj) {
-		var i = this.matriz.indexOf(rowi);
-		var j = this.matriz.indexOf(rowj);
-		if (this.maxsA[i][0] < this.maxsA[j][0]) {
-			if (this.maxsA[i][1] > this.maxsA[j][1]) {
-				return 1;
-			}
-			else if (this.maxsA[i][1] == this.maxsA[j][1]) {
-				return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
-			}
-			return -1;
-		}
-		if (this.maxsA[i][0] > this.maxsA[j][0]) {
-			if (this.maxsA[i][1] > this.maxsA[j][1]) {
-				return 1;
-			}
-			else if (this.maxsA[i][1] == this.maxsA[j][1]) {
-				return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
-			}
-			return 1;
-		}
-		if (this.maxsA[i][0] == this.maxsA[j][0]) {
-			if (this.maxsA[i][1] > this.maxsA[j][1]) {
-				return 1;
-			}
-			else if (this.maxsA[i][1] == this.maxsA[j][1]) {
-				return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
-			}
-			return 0;
-		}
-	}
+	// calculateMaxs() {
+	// 	var matrizA = [];
+	// 	var arrayMaxs = [];
+	// 	this.matriz.forEach(function(element) {
+	// 		var arr = [];
+	// 		element.forEach(function(item, index) {
+	// 			if (index < element.length - 1) {
+	// 				arr.push(item);
+	// 			}
+	// 		});
+	// 		matrizA.push(arr);
+	// 	});
+	// 	matrizA = math.max(math.abs(matrizA), 1);
+	// 	this.matriz.forEach(function(element, i) {
+	// 		var arr = [];
+	// 		element.forEach(function(item, j) {
+	// 			if (j < element.length - 1) {
+	// 				if (item == matrizA[i]) {
+	// 					arr.push(item);
+	// 					arr.push(j);
+	// 				}
+	// 			}
+	// 		});
+	// 		arrayMaxs.push(arr);
+	// 	});
+	// 	this.maxsA = arrayMaxs;
+	// 	return this.maxsA;
+	// }
 
-	compareNumbers(a, b) {
-		if (a < b) {
-			return -1;
-		}
-		if (a > b) {
-			return 1;
-		}
-		return 0;
-	}
+	// sort(compareFunction) {
+	// 	if (arguments.length === 0) {
+	// 		this.calculateMaxs();
+	// 		this.matriz.sort((rowi, rowj) => this.compareDiagNum(rowi, rowj));
+	// 	}
+	// 	else {
+	// 		if (typeof compareFunction === "function") {
+	// 			this.matriz.sort(compareFunction);
+	// 		}
+	// 		else {
+	// 			throw new TypeError("El parametro compareFunction no es una función");
+	// 		}
+	// 	}
+	// }
 
-	hasDiagDominant() {
-		var dominante = true;
-		for (var i = 0; i < this.matriz.length; i++) {
-			var sum = 0;
-			var diag;
-			for (var j = 0; j < this.matriz[i].length - 1; j++) {
-				if (i == j) {
-					diag = math.abs(this.matriz[i][j]);
-				}
-				else {
-					sum += math.abs(this.matriz[i][j]);
-				}
-			}
-			if (diag <= sum) {
-				dominante = false;
-				break;
-			}
-		}
-		return dominante;
-	}
+	// compareDiagNum(rowi, rowj) {
+	// 	var i = this.matriz.indexOf(rowi);
+	// 	var j = this.matriz.indexOf(rowj);
+	// 	if (this.maxsA[i][0] < this.maxsA[j][0]) {
+	// 		if (this.maxsA[i][1] > this.maxsA[j][1]) {
+	// 			return 1;
+	// 		}
+	// 		else if (this.maxsA[i][1] == this.maxsA[j][1]) {
+	// 			return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
+	// 		}
+	// 		return -1;
+	// 	}
+	// 	if (this.maxsA[i][0] > this.maxsA[j][0]) {
+	// 		if (this.maxsA[i][1] > this.maxsA[j][1]) {
+	// 			return 1;
+	// 		}
+	// 		else if (this.maxsA[i][1] == this.maxsA[j][1]) {
+	// 			return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
+	// 		}
+	// 		return 1;
+	// 	}
+	// 	if (this.maxsA[i][0] == this.maxsA[j][0]) {
+	// 		if (this.maxsA[i][1] > this.maxsA[j][1]) {
+	// 			return 1;
+	// 		}
+	// 		else if (this.maxsA[i][1] == this.maxsA[j][1]) {
+	// 			return this.compareNumbers(rowi[this.maxsA[i][1]], rowj[this.maxsA[i][1]]);
+	// 		}
+	// 		return 0;
+	// 	}
+	// }
+
+	// compareNumbers(a, b) {
+	// 	if (a < b) {
+	// 		return -1;
+	// 	}
+	// 	if (a > b) {
+	// 		return 1;
+	// 	}
+	// 	return 0;
+	// }
+
+	// hasDiagDominant() {
+	// 	var dominante = true;
+	// 	for (var i = 0; i < this.matriz.length; i++) {
+	// 		var sum = 0;
+	// 		var diag;
+	// 		for (var j = 0; j < this.matriz[i].length - 1; j++) {
+	// 			if (i == j) {
+	// 				diag = math.abs(this.matriz[i][j]);
+	// 			}
+	// 			else {
+	// 				sum += math.abs(this.matriz[i][j]);
+	// 			}
+	// 		}
+	// 		if (diag <= sum) {
+	// 			dominante = false;
+	// 			break;
+	// 		}
+	// 	}
+	// 	return dominante;
+	// }
 
 	getMatriz() {
 		return this.matriz;
 	}
 
+	toFractionValues() {
+
+	}
+
 	toString() {
 		return JSON.stringify(this.matriz);
 	}
+}
+
+// Tabla Simplex con diseño MDC
+class TableSimplexMDCModel {
+	constructor(head_vd, fst_vb, r_values, fo_values, aria_label="") {
+		if ((typeof head_vd === "object" && head_vd.length > 0) || 
+			(typeof fst_vb === "object" && fst_vb.length > 0) ||
+			(typeof r_values === "object" && r_values.length > 0) ||
+			(typeof fo_values === "object" && fo_values.length > 0)) {
+			this.head_vd = head_vd;
+			this.fst_vb = fst_vb;
+			this.r_values = r_values;
+			this.fo_values = fo_values;
+			this.aria_label = aria_label;
+		}
+		else {
+			throw new TypeError("The arguments is not an array");
+		}
+	}
+
+	toJqueryDOM() {
+		var div_container = $('<div>', {'class': "mdc-data-table"});
+		var table = $('<table>', {
+			'class': 'mdc-data-table__table',
+			'aria-label': this.aria_label
+		});
+		var thead = $('<thead>');
+		var tbody = $('<tbody>', {'class': 'mdc-data-table__content'});
+		var tfoot = $('<tfoot>');
+		var tr_head = $('<tr>', {'class': 'mdc-data-table__header-row'});
+		var tr_foot = $('<tr>', {'class': 'mdc-data-table__row'});
+
+		var thead_values = [...this.head_vd];
+		thead_values.unshift('');
+		thead_values.push('');
+		thead_values.forEach( function(element, index) {
+			var th = $('<th>', {
+				'class': 'mdc-data-table__header-cell',
+				'role': 'columnheader',
+				'scope': 'col',
+				'text': element
+			});
+			tr_head.append(th);
+		});
+		thead.append(tr_head);
+		table.append(thead);
+
+		var tbody_values = new Array();
+		this.r_values.forEach( function(element, index) {
+			var row = [...element];
+			row.unshift(this.fst_vb[index]);
+			tbody_values.push(row);
+		});
+		tbody_values.forEach( function(array, i) {
+			var tr = $('<tr>', {'class': 'mdc-data-table__row'});
+			array.forEach( function(element, j) {
+				var td = $('<td>', {
+					'class': 'mdc-data-table__cell',
+					'text': element
+				});
+				tr.append(td);
+			});
+			tbody.append(tr);
+		});
+		table.append(tbody);
+
+		var tfoot_values = [...this.fo_values];
+		tfoot_values.unshift(TEX_Z);
+		tfoot_values.forEach( function(element, index) {
+			var td = $('<td>', {
+				'class': 'mdc-data-table__cell',
+				'role': 'columnfooter',
+				'scope': 'col',
+				'text': element
+			});
+			tr_foot.append(td);
+		});
+		tfoot.append(tr_foot);
+		table.append(tfoot);
+
+		div_container.append(table);
+
+		return div_container;
+	}
+
 }
 
 // Ecuacion lineal de tres dimensiones
@@ -504,7 +644,7 @@ $(document).ready(function() {
 	$("#form-data-solution").submit(function(event) {
 		event.preventDefault();
 		var list = $("#table-rest").find('tbody').children();
-		var list_values_rt = [].map.call(list, (node) => [].map.call(node.children, function(td) {
+		var list_values_rt = [].map.call(list, (node) => [].map.call(node.children, (td) => {
                 if ($(td).find('select').length > 0) {
                     return $(td).children('select').val();
                 } else {
@@ -676,6 +816,8 @@ $(window).resize(function(){
 function calculate_solution(ar_rest, ar_fobj) {
 	console.log(ar_rest);
 	console.log(ar_fobj);
+	//console.log(math.transpose(math.column(ar_rest, ar_rest[0].length - 2))[0]);
+	console.log(new MatrizRest(ar_rest).toStandardForm());
 
 	var fz = "";
 	if (fz !== "") {
