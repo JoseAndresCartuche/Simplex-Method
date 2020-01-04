@@ -67,21 +67,29 @@ var TEX_REST = "\\(X_{{0}}\\)";
 var TEX_SLACK = "\\(S_{{0}}\\)";
 var TEX_Z = "\\(Z\\)";
 
-// Matriz donde estan las restricciones
+// Matriz donde estan las restricciones y la función objetivo
 // Las convierte en la forma estándar
 // Usa funciones de math.js
-class MatrizRest {
-	constructor(array) {
-		if (typeof array === "object" && array.length > 0) {
-			this.matriz = array;
+class MatrizRFO {
+	constructor(array_res, array_fo, z_init=0) {
+		if ((typeof array_res === "object" && array_res.length > 0) || 
+			(typeof array_fo === "object" && array_fo.length > 0) ){
+			this.matriz = array_res;
+			this.fo = array_fo;
+			if (typeof z_init === 'number') {
+				this.z_init = z_init;
+			}
+			else {
+				throw new TypeError("The argument z_init is not a number");
+			}
 		}
 		else {
-			throw new TypeError("The argument is not an array");
+			throw new TypeError("The arguments [array_res, array_fo] is not an array");
 		}
 	}
 
 	toStandardForm() {
-		var standard;
+		var standard, objfunFinal;
 		var conditions = math.transpose(math.column(this.matriz, this.matriz[0].length - 2))[0];
 		var i_eq = 0;
 
@@ -91,11 +99,16 @@ class MatrizRest {
 			}
 		});
 
+		objfunFinal = [...this.fo];
+
 		if (i_eq == conditions.length) {
 			// No hay que estandarizar
 			// Solo hay que devolver el array sin los condicionales;
 			standard = new Array();
 			this.matriz.forEach((array) => standard.push(array.filter((item) => typeof item === 'number')));
+
+			// Agregamos el valor inicial al array
+			objfunFinal.push(this.z_init);
 		}
 		else {
 			// Si hay que estandarizar
@@ -112,8 +125,13 @@ class MatrizRest {
 			// Se concatena la matriz de las variables, la matriz identidad y 
 			// las bi de las restricciones
 			standard = math.concat(math.concat(values, identity), bi);
+
+			// Agregamos ceros y el valor inicial
+			conditions.forEach(() => objfunFinal.push(0));
+			objfunFinal.push(this.z_init);
 		}
-		return standard;
+		var json = {restrictions: standard, objfunction: objfunFinal};
+		return json;
 	}
 
 	// calculateMaxs() {
@@ -658,8 +676,8 @@ $(document).ready(function() {
 		var z_init;
 		if($("input#v_initial").is(':checked')) {
 			var txt_init = $("input[name=initial_z]").val();
-			if (isNumber(txt_init)) {
-				z_init = parseFloat(txt_init);
+			if (isNumber(evaluate(txt_init))) {
+				z_init = evaluate(txt_init);
 			}
 			else {
 				console.error("The initial value Zo is not a number");
@@ -829,11 +847,9 @@ function calculate_solution(ar_rest, ar_fobj, z_init=0) {
 	console.log(ar_rest);
 	console.log(ar_fobj);
 	//console.log(math.transpose(math.column(ar_rest, ar_rest[0].length - 2))[0]);
-	console.log(new MatrizRest(ar_rest).toStandardForm());
-
-	var f_obj_zo = [...ar_fobj];
-	f_obj_zo.push(z_init);
-	console.log(f_obj_zo);
+	var objMFO = new MatrizRFO(ar_rest, ar_fobj, z_init);
+	console.log(objMFO.toStandardForm().restrictions);
+	console.log(objMFO.toStandardForm().objfunction);
 
 	var fz = "";
 	if (fz !== "") {
@@ -970,7 +986,7 @@ function isNumber(text) {
 		return (!isNaN(text));
 	}
 	else {
-		var n = parseInt(text);
+		var n = parseFloat(text);
 		return (!isNaN(text));
 	}
 }
