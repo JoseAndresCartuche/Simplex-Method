@@ -610,7 +610,7 @@ $(document).ready(function() {
 	efectsMDC();
 	//$('.my-card-hidden').hide();
 
-	// $("input[name=p1]").prop('disabled', true);
+	$("input[name=initial_z]").prop('disabled', true);
 	// $("input[name=p2]").prop('disabled', true);
 
 	// $("#function").hide();
@@ -630,34 +630,46 @@ $(document).ready(function() {
 	// 	$("#form-graph").submit();
 	// });
 
-	// $("input#interval").click(function(event) {
-	// 	if($(this).is(':checked')) {
-	// 		$("input[name=p1]").prop('disabled', false);
-	// 		$("input[name=p2]").prop('disabled', false);
-	// 	}
-	// 	else {
-	// 		$("input[name=p1]").prop('disabled', true);
-	// 		$("input[name=p2]").prop('disabled', true);
-	// 	}
-	// });
+	$("input#v_initial").click(function(event) {
+		if($(this).is(':checked')) {
+			$("input[name=initial_z]").prop('disabled', false);
+		}
+		else {
+			$("input[name=initial_z]").prop('disabled', true);
+		}
+	});
 
 	$("#form-data-solution").submit(function(event) {
 		event.preventDefault();
 		var list = $("#table-rest").find('tbody').children();
 		var list_values_rt = [].map.call(list, (node) => [].map.call(node.children, (td) => {
-                if ($(td).find('select').length > 0) {
-                    return $(td).children('select').val();
-                } else {
-                    return evaluate($(td).text());
-                }
-            }));
+			if ($(td).find('select').length > 0) {
+				return $(td).children('select').val();
+			} else {
+				return evaluate($(td).text());
+			}
+		}));
 		//console.log(list_values_rt);
 
 		list = $("#table-funcion_z").find('tbody').find('td');
 		var list_values_fo = [].map.call(list, (node) => evaluate($(node).text()));
 		//console.log(list_values_fo);
 		
-		calculate_solution(list_values_rt, list_values_fo);
+		var z_init;
+		if($("input#v_initial").is(':checked')) {
+			var txt_init = $("input[name=initial_z]").val();
+			if (isNumber(txt_init)) {
+				z_init = parseFloat(txt_init);
+			}
+			else {
+				console.error("The initial value Zo is not a number");
+			}
+		}
+		else {
+			z_init = 0;
+		}
+		
+		calculate_solution(list_values_rt, list_values_fo, z_init);
 	});
 
 	$("button#calculate").click(function(event) {
@@ -693,7 +705,7 @@ $(document).ready(function() {
 	});
 
 	$("button#clear-data").click(function(event) {
-		$("input#funcion_z").val("");
+		$("input#initial_z").val("");
 		var trs = document.querySelectorAll('#table-rest tbody tr td');
 		Array.prototype.forEach.call(trs, (item) => $(item).empty());
 		$("input[name=z_result]").val("");
@@ -813,11 +825,15 @@ $(window).resize(function(){
 // }
 
 // Calculate solution for the simplex methodo (vbeta)
-function calculate_solution(ar_rest, ar_fobj) {
+function calculate_solution(ar_rest, ar_fobj, z_init=0) {
 	console.log(ar_rest);
 	console.log(ar_fobj);
 	//console.log(math.transpose(math.column(ar_rest, ar_rest[0].length - 2))[0]);
 	console.log(new MatrizRest(ar_rest).toStandardForm());
+
+	var f_obj_zo = [...ar_fobj];
+	f_obj_zo.push(z_init);
+	console.log(f_obj_zo);
 
 	var fz = "";
 	if (fz !== "") {
