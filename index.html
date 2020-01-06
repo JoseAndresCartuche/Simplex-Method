@@ -180,7 +180,7 @@
 									<div class="mdc-layout-grid__cell--span-6-desktop">
 										<div class="mdc-form-field" data-mdc-auto-init="MDCFormField">
 											<div class="mdc-radio" data-mdc-auto-init="MDCRadio">
-												<input class="mdc-radio__native-control" type="radio" id="radio-1" name="radios" checked>
+												<input class="mdc-radio__native-control" type="radio" id="radio-1" name="radios" value="min" checked>
 												<div class="mdc-radio__background">
 													<div class="mdc-radio__outer-circle"></div>
 													<div class="mdc-radio__inner-circle"></div>
@@ -193,7 +193,7 @@
 									<div class="mdc-layout-grid__cell--span-6-desktop">
 										<div class="mdc-form-field" data-mdc-auto-init="MDCFormField">
 											<div class="mdc-radio" data-mdc-auto-init="MDCRadio">
-												<input class="mdc-radio__native-control" type="radio" id="radio-2" name="radios">
+												<input class="mdc-radio__native-control" type="radio" id="radio-2" name="radios" value="max">
 												<div class="mdc-radio__background">
 													<div class="mdc-radio__outer-circle"></div>
 													<div class="mdc-radio__inner-circle"></div>
@@ -284,12 +284,12 @@
 					<div class="my-card-content mdc-typography--body1">
 						<div class="my-card-content__primary">
 							<div class="text-field-row-fullwidth">
-								<div class="mdc-text-field mdc-text-field--outlined mdc-text-field--disabled" data-mdc-auto-init="MDCTextField">
-									<input type="text" id="z_result" class="mdc-text-field__input" name="sqrt_result" disabled>
+								<div class="mdc-text-field mdc-text-field--textarea mdc-text-field--disabled">
+									<div type="text" id="z_result" class="mdc-text-field__input" name="sqrt_result"></div>
 									<div class="mdc-notched-outline">
 										<div class="mdc-notched-outline__leading"></div>
 										<div class="mdc-notched-outline__notch">
-											<label class="mdc-floating-label mdc-floating-label--float-above" for="sqrt_result">La solución básica factible óptima es:</label>
+											<label class="mdc-floating-label mdc-floating-label--float-above" for="sqrt_result">La solución básica factible es:</label>
 										</div>
 										<div class="mdc-notched-outline__trailing"></div>
 									</div>
@@ -310,11 +310,11 @@
 				</div>
 				<div id="box-data-table" class="mdc-card my-card my-card-hidden">
 					<div class="my-card-header">
-						<h6 class="my-card__title mdc-typography--headline6">Tabla de Iteraciones</h6>
+						<h6 class="my-card__title mdc-typography--headline6">Tablas Simplex</h6>
 					</div>
 					<div class="my-card-content mdc-typography--body1">
-						<div class="my-card-content__primary">
-							<div class="mdc-data-table mdc-table-overflow">
+						<div class="my-card-content__primary" id="tables-solutions">
+							<!-- <div class="mdc-data-table mdc-table-overflow">
 								<table id="table-solution" class="mdc-data-table__table">
 									<thead>
 										<tr class="mdc-data-table__header-row">
@@ -332,7 +332,7 @@
 									</thead>
 									<tbody class="mdc-data-table__content"></tbody>
 								</table>
-							</div>
+							</div> -->
 						</div>
 					</div>
 				</div>

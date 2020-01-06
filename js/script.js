@@ -63,9 +63,19 @@ var conditionals = [
 	{ value: 'eq', text: '&#61;'},
 ];
 
-var TEX_REST = "\\(X_{{0}}\\)";
+const Solutions = {
+	OPTIMAL: 0,
+	INFINITE: 1,
+	UNLIMITED: 2,
+	NOT_MORE: 3,
+	DEGENERATE: 4
+}
+
+var TEX_VAR = "\\(X_{{0}}\\)";
 var TEX_SLACK = "\\(S_{{0}}\\)";
 var TEX_Z = "\\(Z\\)";
+var TEX_BI = "\\(B_i\\)";
+var TEX_SOL = "{0} = {1}";
 
 // Matriz donde estan las restricciones y la función objetivo
 // Las convierte en la forma estándar
@@ -132,6 +142,26 @@ class MatrizRFO {
 		}
 		var json = {restrictions: standard, objfunction: objfunFinal};
 		return json;
+	}
+
+	isStandardOrigin() {
+		var conditions = math.transpose(math.column(this.matriz, this.matriz[0].length - 2))[0];
+		var i_eq = 0;
+
+		conditions.forEach((element) => {
+			if (element === "eq") {
+				i_eq++;
+			}
+		});
+
+		if (i_eq == conditions.length) {
+			// Las restricciones estan en forma estandarizar
+			return true;
+		}
+		else {
+			// Las restricciones no estan en forma estandarizar
+			return false;
+		}
 	}
 
 	// calculateMaxs() {
@@ -286,7 +316,7 @@ class TableSimplexMDCModel {
 
 		var thead_values = [...this.head_vd];
 		thead_values.unshift('');
-		thead_values.push('');
+		thead_values.push(TEX_BI);
 		thead_values.forEach( function(element, index) {
 			var th = $('<th>', {
 				'class': 'mdc-data-table__header-cell',
@@ -304,7 +334,7 @@ class TableSimplexMDCModel {
 			var row = [...element];
 			row.unshift(this.fst_vb[index]);
 			tbody_values.push(row);
-		});
+		}, this);
 		tbody_values.forEach( function(array, i) {
 			var tr = $('<tr>', {'class': 'mdc-data-table__row'});
 			array.forEach( function(element, j) {
@@ -673,6 +703,12 @@ $(document).ready(function() {
 		var list_values_fo = [].map.call(list, (node) => evaluate($(node).text()));
 		//console.log(list_values_fo);
 		
+		var tip = $("input[name=radios]:checked").val();
+
+		if (tip === "max") {
+			list_values_fo = math.multiply(list_values_fo, -1);
+		}
+		
 		var z_init;
 		if($("input#v_initial").is(':checked')) {
 			var txt_init = $("input[name=initial_z]").val();
@@ -846,111 +882,297 @@ $(window).resize(function(){
 function calculate_solution(ar_rest, ar_fobj, z_init=0) {
 	console.log(ar_rest);
 	console.log(ar_fobj);
-	//console.log(math.transpose(math.column(ar_rest, ar_rest[0].length - 2))[0]);
-	var objMFO = new MatrizRFO(ar_rest, ar_fobj, z_init);
-	console.log(objMFO.toStandardForm().restrictions);
-	console.log(objMFO.toStandardForm().objfunction);
 
-	var fz = "";
-	if (fz !== "") {
-		var array2D = [];
-		$("#table-rest tbody tr").find("td").each(function() {
-			if($(this).html() !== "") {
-				var objRst = new LinealEquation($(this).html());
-				array2D.push(objRst.transArray());
+	if (Array.isArray(ar_rest) && ar_rest.length > 0 && Array.isArray(ar_fobj) && ar_fobj.length > 0) 
+	{
+		if (ar_rest.some((element) => element.some((item) => typeof item === "number" && isNaN(item)))) {
+			alert("Las restricciones tienen valores inválidos");
+			return;
+		}
+		if (ar_fobj.some((element) => isNaN(element))) {
+			alert("La función objetivo tiene valores inválidos");
+			return;
+		}
+
+		var objMFO = new MatrizRFO(ar_rest, ar_fobj, z_init);
+		var standard = objMFO.toStandardForm();
+
+		console.log(standard.restrictions);
+		console.log(standard.objfunction);
+
+		var a_Sol, js_Sol, z_Sol, tablemdc;
+		var head_vd, ar_str_vb;
+		var more_simplex = true;
+
+		var n = standard.objfunction.length - 1;
+		var m = standard.restrictions.length;
+		var n_vb = n - (n - m);
+
+		if (objMFO.isStandardOrigin()) {
+			// Las ecuaciones ya están estandarizadas o no se necesitan estandarizar
+			// Puede ser que estén o no estén en forma canónica
+			var arr_z = ar_fobj;
+			var condition = true;
+
+			head_vd = [].map.call(arr_z, (it, id) => TEX_VAR.format(id+1));
+			ar_str_vb = head_vd.filter((it, id) => id < n_vb);
+
+			tablemdc = new TableSimplexMDCModel(head_vd, ar_str_vb, standard.restrictions, standard.objfunction);
+			$("#box-data-table #tables-solutions").append(tablemdc.toJqueryDOM());
+
+			do{
+				// Verifica si no tiene numeros negativos / tiene solo positivos y ceros 
+				// la función objetivo
+				var onlyPos = math.filter(arr_z, (x) => x >= 0);
+				if (onlyPos.length == arr_z.length) {
+					// Filtramos los ceros en la funcion objetivo (sin contar el valor inicial)
+					// deben ser iguales al numero de variables basicas 
+					var zeros = math.filter(arr_z, (x) => x == 0);
+					if (zeros.length == n_vb) {
+						// No hay más solución
+						a_Sol = Solutions.NOT_MORE;
+						z_Sol = z_init;
+						condition = false;
+						more_simplex = false;
+					}
+					else if (zeros.length <= n - m) {
+						// El problema tiene infinitas soluciones
+						a_Sol = Solutions.INFINITE;
+						condition = false;
+						more_simplex = false;
+					}
+					else {
+						var ord = [...arr_z].sort((a, b) => a - b);
+						
+						// Escogemos la columna pivote, el numero más menor
+						var n_piv = arr_z.indexOf(ord[0]);
+						// Obtenemos la columna pivote
+						var col_piv = math.transpose(math.column(standard.restrictions, n_piv))[0];
+
+						// Sacamos todos los numeros negativos
+						var neg = math.filter(col_piv, (x) => x < 0);
+
+						if (neg.length == col_piv.length) {
+							// Tiene solución ilimitada
+							a_Sol = Solutions.UNLIMITED;
+							condition = false;
+							more_simplex = false;
+						}
+						else {
+							standard = updateTableSimplex(head_vd, ar_str_vb, standard.restrictions, standard.objfunction, n_piv);
+							arr_z = math.filter(standard.objfunction, (i, index) => index < standard.objfunction.length - 1);
+						}
+					}
+				}
+				else {
+					condition = false;
+				}
+
+			} while (condition);
+		}
+		else {
+			var vars_r = standard.objfunction.slice(0, standard.objfunction.length - 1);
+			head_vd = [].map.call(vars_r, (it, id) => {
+				if (id < vars_r.length - m) {
+					return TEX_VAR.format(id+1);
+				}
+				else {
+					return TEX_SLACK.format(id-m+1);
+				}
+			});
+			ar_str_vb = head_vd.slice(-m);
+		}
+
+		if (more_simplex) {
+
+			tablemdc = new TableSimplexMDCModel(head_vd, ar_str_vb, standard.restrictions, standard.objfunction);
+			$("#box-data-table #tables-solutions").append(tablemdc.toJqueryDOM());
+
+			var only_var_z = math.filter(standard.objfunction, (i, index) => index < standard.objfunction.length - 1);
+
+			var sort_z = [...only_var_z].sort((a, b) => a - b);
+
+			if (sort_z[0] >= 0) {
+				// No hay solución
+				a_Sol = Solutions.NOT_MORE;
+				z_Sol = z_init;
 			}
-		});
-		var objMatriz = new MatrizEq(array2D);
-		console.log(objMatriz.toString());
-		console.log(objMatriz.getMatriz());
+			else {
+				var condition = true;
+				while (sort_z[0] < 0 && condition) {
+					// Escogemos la columna pivote, el numero más menor
+					var n_piv = only_var_z.indexOf(sort_z[0]);
+					// Obtenemos la columna pivote
+					var col_piv = math.transpose(math.column(standard.restrictions, n_piv))[0];
 
-		// var exp = new FuncionMath(fx);
-		// var str_a = $("input[name=valorA]").val();
-		// var str_b = $("input[name=valorB]").val();
-		// var str_iter = $("input[name=n_iter]").val();
-		
-		// if (str_a !== "" && str_b !== "" && str_iter !== "") {
-		// 	var a = parseFloat(str_a);
-		// 	var b = parseFloat(str_b);
-		// 	var fa = exp.evaluate(a);
-		// 	var fb = exp.evaluate(b);
-		// 	// Verificar si hay continuidad en el intervalo
-		// 	if (isInfinite(fa) || isComplex(fa) || isInfinite(fb) || isComplex(fb)) {
-		// 		alert("La función no es continua en el intervalo [" + a + ", " + b + "]");
-		// 	}
-		// 	else {
-		// 		// Verificar si f(a).f(b) < 0
-		// 		if (fa * fb < 0) {
-		// 			// Generar tabla y calcular raiz
-		// 			var nIter = parseInt(str_iter);
-		// 			if (nIter < 1) {
-		// 				alert("El número de iteracciones debe ser mayor o igual a 1");
-		// 			}
-		// 			else {
-		// 				var i = 0;
-		// 				var Xi = a;
-		// 				var Xs = b;
-		// 				var XmAnt = 0;
-		// 				var Xm;
-		// 				var Ea, Er, Ep;
-		// 				var tbody;
-		// 				do {
-		// 					Xm = (Xi + Xs) / 2;
+					// Sacamos todos los numeros negativos
+					var n_neg = math.filter(col_piv, (x) => x < 0);
 
-		// 					var fXi = exp.evaluate(Xi);
-		// 					var fXs = exp.evaluate(Xs);
-		// 					var fXm = exp.evaluate(Xm);
+					if (n_neg.length == col_piv.length) {
+						// Tiene solución ilimitada
+						a_Sol = Solutions.UNLIMITED;
+						condition = false;
+					}
+					else {
+						standard = updateTableSimplex(head_vd, ar_str_vb, standard.restrictions, standard.objfunction, n_piv);
+						only_var_z = math.filter(standard.objfunction, (i, index) => index < standard.objfunction.length - 1);
+						sort_z = [...only_var_z].sort((a, b) => a - b);
+					}
+				}
 
-		// 					Ea = math.abs(Xm - XmAnt);
-		// 					Er = Ea / Xm;
-		// 					Ep = Er * 100;
+				// Filtramos los ceros en la funcion objetivo (sin contar el valor inicial)
+				var zeros = math.filter(only_var_z, (x) => x == 0);
+				if (zeros.length == n_vb) {
+					// Si son iguales al numero de variables basicas 
+					// No hay más solución. Es la solución óptima
+					a_Sol = Solutions.OPTIMAL;
+					// z_Sol = standard.objfunction[n-1];
+				}
+				else if (zeros.length <= n - m) {
+					// Si alguna variable de decisión no básica tiene un valor 0
+					// El problema tiene infinitas soluciones
+					a_Sol = Solutions.INFINITE;
+					// z_Sol = standard.objfunction[n-1];
+				}
+				else if (zeros.length == n - 1) {
+					// El problema tiene solución degenerada
+					a_Sol = Solutions.DEGENERATE;
+					// z_Sol = standard.objfunction[n-1];
+				}
+				z_Sol = standard.objfunction[n-1];
+			}
+		}
 
-		// 					// Crear la fila para la iteraccion actual
-		// 					tbody += "<tr>";
-		// 					tbody += "<td>" + (i + 1) + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Xi + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Xs + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Xm + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + fXi + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + fXm + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + (fXi * fXm) + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Ea + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Er + "</td>";
-		// 					tbody += "<td class='mdc-data-table--numeric'>" + Ep + "</td>";
-		// 					tbody += "</tr>";
-
-		// 					if (fXm == 0) {
-		// 						break;
-		// 					}
-
-		// 					if (fXi * fXm < 0) {
-		// 						Xs = Xm;
-		// 					}
-		// 					else if (fXi * fXm > 0) {
-		// 						Xi = Xm;
-		// 					}
-
-		// 					if (XmAnt == Xm) {
-		// 						break;
-		// 					}
-		// 					XmAnt = Xm;
-		// 					i++;
-		// 				} while (i < nIter)
-		// 				$("input[name=sqrt_result]").val(Xm);
-		// 				$("table#table-sqrt tbody").html(tbody);
-		// 				var table = document.querySelector('#box-data-table .mdc-table-overflow');
-		// 				new MDCDataTable(table);
-		// 			}
-		// 		}
-		// 		else {
-		// 			alert("Intervalo [" + a + ", " + b + "] invalido: f(a).f(b) >= 0");
-		// 		}
-		// 	}
+		// if (typeof standard.result !== "undefined" && $.isEmptyObject(standard.result)) {
+		// 	js_Sol = standard.result;
 		// }
+
+		js_Sol = standard.result;
+		
+		var str_a_sol;
+		switch (a_Sol) {
+			case Solutions.OPTIMAL:
+				str_a_sol = "Solución Óptima";
+				break;
+			case Solutions.INFINITE:
+				str_a_sol = "Infinitas Soluciones";
+				break;
+			case Solutions.UNLIMITED:
+				str_a_sol = "Solución Ilimitada";
+				break;
+			case Solutions.NOT_MORE:
+				str_a_sol = "No hay más Soluciones";
+				break;
+			case Solutions.DEGENERATE:
+				str_a_sol = "Solución Degenerada";
+				break;
+		}
+
+		var str_solutions = new Array();
+
+		if (!$.isEmptyObject(js_Sol)) {
+			for (var clave in js_Sol){
+				// Controlando que json realmente tenga esa propiedad
+				if (js_Sol.hasOwnProperty(clave)) {
+					str_solutions.push(TEX_SOL.format(clave, js_Sol[clave]));
+				}
+			}
+			var txtInputResult = "\\(" + str_solutions.join(',') + "\\)<p>" + str_a_sol + "</p>";
+		}
+		else {
+			var txtInputResult = str_a_sol;
+		}
+
+		// var txtInputResult = str_solutions.join(',') + "\\\\" + str_a_sol;
+		$("#z_result").html(txtInputResult);
+		MathJax.Hub.Queue(["Typeset", MathJax.Hub, "#z_result"]);
 	}
 	else {
-		alert("Primero ingrese la función objetivo");
+		alert("Ingrese primero los campos");
 	}
+}
+
+function updateTableSimplex(head_vd, fst_vb, r_values, fo_values, i_piv_col) {
+	var json;
+	var head_vd, fst_vb;
+	var i_piv_row, row_piv, piv_el;
+	var regex = new RegExp('\u005C\u005C\u0028|\u005C\u005C\u0029', 'gu'); // /\u0028|\u0029/gu
+	var n = fo_values.length;
+
+	// Obtenemos la columna pivote
+	var col_piv = math.transpose(math.column(r_values, i_piv_col))[0];
+	var col_bi = math.transpose(math.column(r_values, n-1))[0];
+	var razon =  new Array();
+
+	col_piv.forEach((element, i) => {
+		// if (element > 0) {
+		// 	razon.push(col_bi[i] / element);
+		// }
+		// else {
+		// 	razon.push(0);
+		// }
+		razon.push(col_bi[i] / element);
+	});
+
+	var razon_s_neg = razon.filter((element) => element > 0);
+
+	console.log(razon);
+	console.log(razon_s_neg);
+
+	var ord_razon = [...razon_s_neg].sort((a, b) => a - b);
+	i_piv_row = razon.indexOf(ord_razon[0]);
+	piv_el = col_piv[i_piv_row];
+
+	row_piv = r_values[i_piv_row];
+	// Cambiar variable elegida de columna a la fila (se hace variable básica)
+	fst_vb[i_piv_row] = head_vd[i_piv_col];
+
+	r_values.forEach( function(element, index) {
+		if (i_piv_row == index) {
+			r_values[index] = math.divide(element, piv_el);
+		}
+		else {
+			var mult = (element[i_piv_col] * (-1)) / piv_el;
+			var s1 = element;
+			var s2 = math.multiply(row_piv, mult);
+			r_values[index] = math.add(s1, s2);
+		}
+	});
+
+	var mult = (fo_values[i_piv_col] * (-1)) / piv_el;
+	var s1 = fo_values;
+	var s2 = math.multiply(row_piv, mult);
+	fo_values = math.add(s1, s2);
+
+	var tablemdc = new TableSimplexMDCModel(head_vd, fst_vb, r_values, fo_values);
+	$("#box-data-table #tables-solutions").append(tablemdc.toJqueryDOM());
+	MathJax.Hub.Queue(["Typeset", MathJax.Hub, "#box-data-table #tables-solutions"]);
+
+	json = {
+		restrictions: r_values,
+		objfunction: fo_values,
+		result: {}
+	};
+
+	fst_vb.forEach( (element, index) => {
+		if (regex.test(element)) {
+			var t = element.replace(regex, '');
+			json.result[t.replace(/\u0028|\u0029/gu, '')] = r_values[index][n-1];
+		}
+	});
+	var tip = $("input[name=radios]:checked").val();
+
+	if (tip === "min") {
+		json.result['Z'] = fo_values[n-1] * (-1);
+	}
+	else {
+		json.result['Z'] = fo_values[n-1];
+	}
+
+	console.log(json);
+	console.log(head_vd, fst_vb);
+
+	return json;
 }
 
 function isInfinite(number) {
@@ -977,6 +1199,9 @@ function evaluate(text) {
 		number = math.evaluate(text);
 	} catch(e) {
 		console.error(e);
+	}
+	if (typeof number === "undefined") {
+		number = 0;
 	}
 	return number;
 }
